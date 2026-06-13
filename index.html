@@ -231,26 +231,29 @@ async function loadForecast() {
 
     const periods = fcData.properties.periods.slice(0, 168);
 
-    const labels = [], dps = [], rows = [];
+    const labels = [], dps = [], temps = [], rows = [];
     for (const p of periods) {
       if (!p.dewpoint) continue;
       const dp = p.dewpoint.unitCode === 'wmoUnit:degC'
         ? cToF(p.dewpoint.value)
         : Math.round(p.dewpoint.value);
+      const temp = p.temperature != null
+        ? (p.temperatureUnit === 'F' ? Math.round(p.temperature) : cToF(p.temperature))
+        : null;
       const dt = new Date(p.startTime);
       const dayStr = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
       labels.push(dt.getHours() === 0 || labels.length === 0 ? dayStr : timeStr);
       dps.push(dp);
-      rows.push({ dt, dayStr, timeStr, dp });
+      temps.push(temp);
+      rows.push({ dt, dayStr, timeStr, dp, temp });
     }
 
     if (!dps.length) throw new Error('No dewpoint data returned by NWS.');
 
+    const allVals = [...dps, ...temps.filter(t => t !== null)];
     const minDp = Math.min(...dps), maxDp = Math.max(...dps);
-    const avgDp = Math.round(dps.reduce((a,b) => a+b,0) / dps.length);
     const curDp = dps[0];
-    const curC = comfort(curDp);
 
     const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
     const lineColor  = isDark ? '#85B7EB' : '#185FA5';
@@ -295,17 +298,31 @@ async function loadForecast() {
       plugins: [daySeparatorPlugin],
       data: {
         labels,
-        datasets: [{
-          label: 'Dewpoint (°F)',
-          data: dps,
-          borderColor: lineColor,
-          backgroundColor: fillColor,
-          fill: true,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          borderWidth: 2,
-          tension: 0.35
-        }]
+        datasets: [
+          {
+            label: 'Dewpoint (°F)',
+            data: dps,
+            borderColor: lineColor,
+            backgroundColor: fillColor,
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+            tension: 0.35
+          },
+          {
+            label: 'Temperature (°F)',
+            data: temps,
+            borderColor: isDark ? 'rgba(240,149,123,0.7)' : 'rgba(185,60,40,0.45)',
+            backgroundColor: 'transparent',
+            fill: false,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            borderWidth: 1.5,
+            tension: 0.35,
+            borderDash: [4, 3]
+          }
+        ]
       },
       options: {
         responsive: true,
@@ -320,7 +337,10 @@ async function loadForecast() {
                 const r = rows[items[0].dataIndex];
                 return r ? r.dayStr + ', ' + r.timeStr : '';
               },
-              label: (item) => ` ${item.raw}°F — ${comfort(item.raw).label}`
+              label: (item) => {
+                if (item.datasetIndex === 0) return ` Dewpoint: ${item.raw}°F — ${comfort(item.raw).label}`;
+                return ` Temperature: ${item.raw}°F`;
+              }
             }
           }
         },
@@ -330,8 +350,8 @@ async function loadForecast() {
             grid: { color: gridColor }
           },
           y: {
-            min: Math.max(0, minDp - 8),
-            max: maxDp + 8,
+            min: Math.max(0, Math.min(...allVals) - 8),
+            max: Math.max(...allVals) + 8,
             ticks: {
               color: tickColor,
               font: { size: 11 },
