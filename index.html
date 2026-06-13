@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dewpoint — Sharon, MA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #eef1f5;
+    --text: #1a1d23;
+    --text2: #5a6070;
+    --text3: #9099a8;
+    --border: rgba(0,0,0,0.1);
+    --blue: #185FA5;
+    --blue-light: rgba(24,95,165,0.12);
+    --radius: 10px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #13151a;
+      --surface: #1e2128;
+      --surface2: #282c35;
+      --text: #e8eaf0;
+      --text2: #9099a8;
+      --text3: #5a6070;
+      --border: rgba(255,255,255,0.08);
+      --blue: #85B7EB;
+      --blue-light: rgba(133,183,235,0.12);
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+  }
+
+  .card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+
+  .card-val {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .card-sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 5px;
+  }
+
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .chart-inner {
+    position: relative;
+    width: 100%;
+    height: 260px;
+  }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  tbody td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  tbody tr:hover td {
+    background: var(--surface2);
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .footer {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .footer-note {
+    font-size: 12px;
+    color: var(--text3);
+  }
+
+  button {
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--blue);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  button:hover { background: var(--surface2); }
+
+  #status {
+    font-size: 14px;
+    color: var(--text2);
+    padding: 2rem 0;
+    text-align: center;
+  }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Dewpoint forecast</h1>
+    <p id="updated">Sharon, MA · Loading from National Weather Service…</p>
+  </header>
+
+  <div id="status">Fetching forecast…</div>
+
+  <div id="summary" class="summary hidden"></div>
+
+  <div id="chart-wrap" class="chart-wrap hidden">
+    <div class="chart-inner">
+      <canvas id="chart" role="img" aria-label="Hourly dewpoint forecast for Sharon, MA"></canvas>
+    </div>
+  </div>
+
+  <div id="table-wrap" class="table-wrap hidden">
+    <table>
+      <thead>
+        <tr>
+          <th>Day</th>
+          <th>Time</th>
+          <th>Dewpoint</th>
+          <th>Comfort</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <span class="footer-note">Data: NOAA / National Weather Service · Sharon, MA 02067</span>
+    <button onclick="loadForecast()">↻ Refresh</button>
+  </div>
+</div>
+
+<script>
+const LAT = 42.1237, LON = -71.1784;
+let chartInst = null;
+
+function cToF(c) { return Math.round(c * 9 / 5 + 32); }
+
+function comfort(dp) {
+  if (dp < 50) return { label: 'Dry',         bg: '#dbeafe', color: '#1e40af' };
+  if (dp < 55) return { label: 'Comfortable', bg: '#dcfce7', color: '#166534' };
+  if (dp < 60) return { label: 'Comfortable', bg: '#dcfce7', color: '#166534' };
+  if (dp < 65) return { label: 'Noticeable',  bg: '#fef9c3', color: '#854d0e' };
+  if (dp < 70) return { label: 'Humid',       bg: '#ffedd5', color: '#9a3412' };
+  return           { label: 'Oppressive',  bg: '#fee2e2', color: '#991b1b' };
+}
+
+async function loadForecast() {
+  document.getElementById('status').textContent = 'Fetching forecast…';
+  document.getElementById('status').classList.remove('hidden');
+  ['summary','chart-wrap','table-wrap'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  document.getElementById('updated').textContent = 'Sharon, MA · Loading from National Weather Service…';
+
+  try {
+    const ptRes = await fetch(`https://api.weather.gov/points/${LAT},${LON}`);
+    if (!ptRes.ok) throw new Error(`NWS points lookup failed (${ptRes.status})`);
+    const ptData = await ptRes.json();
+    const hourlyUrl = ptData.properties.forecastHourly;
+
+    const fcRes = await fetch(hourlyUrl);
+    if (!fcRes.ok) throw new Error(`Hourly forecast fetch failed (${fcRes.status})`);
+    const fcData = await fcRes.json();
+
+    const periods = fcData.properties.periods.slice(0, 168);
+
+    const labels = [], dps = [], rows = [];
+    for (const p of periods) {
+      if (!p.dewpoint) continue;
+      const dp = p.dewpoint.unitCode === 'wmoUnit:degC'
+        ? cToF(p.dewpoint.value)
+        : Math.round(p.dewpoint.value);
+      const dt = new Date(p.startTime);
+      const dayStr = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
+      labels.push(dt.getHours() === 0 || labels.length === 0 ? dayStr : timeStr);
+      dps.push(dp);
+      rows.push({ dt, dayStr, timeStr, dp });
+    }
+
+    if (!dps.length) throw new Error('No dewpoint data returned by NWS.');
+
+    const minDp = Math.min(...dps), maxDp = Math.max(...dps);
+    const avgDp = Math.round(dps.reduce((a,b) => a+b,0) / dps.length);
+    const curDp = dps[0];
+    const curC = comfort(curDp);
+
+    const sumEl = document.getElementById('summary');
+    sumEl.innerHTML = `
+      <div class="card">
+        <div class="card-label">Right now</div>
+        <div class="card-val">${curDp}°F</div>
+        <div class="card-sub">${curC.label}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">7-day average</div>
+        <div class="card-val">${avgDp}°F</div>
+        <div class="card-sub">${comfort(avgDp).label}</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Range</div>
+        <div class="card-val" style="font-size:20px">${minDp}° – ${maxDp}°</div>
+        <div class="card-sub">low / high</div>
+      </div>
+    `;
+    sumEl.classList.remove('hidden');
+
+    const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const lineColor  = isDark ? '#85B7EB' : '#185FA5';
+    const fillColor  = isDark ? 'rgba(133,183,235,0.13)' : 'rgba(24,95,165,0.10)';
+    const gridColor  = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+    const tickColor  = isDark ? '#6b7280' : '#9ca3af';
+
+    document.getElementById('chart-wrap').classList.remove('hidden');
+
+    const dayLineColor = isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.22)';
+    const dayLabelColor = isDark ? '#9099a8' : '#5a6070';
+
+    const daySeparatorPlugin = {
+      id: 'daySeparator',
+      afterDraw(chart) {
+        const { ctx, scales: { x, y } } = chart;
+        const top = y.top, bottom = y.bottom;
+        ctx.save();
+        rows.forEach((r, i) => {
+          if (r.dt.getHours() !== 0) return;
+          const xPos = x.getPixelForValue(i);
+          ctx.beginPath();
+          ctx.moveTo(xPos, top);
+          ctx.lineTo(xPos, bottom);
+          ctx.strokeStyle = dayLineColor;
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([]);
+          ctx.stroke();
+          const label = r.dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+          ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+          ctx.fillStyle = dayLabelColor;
+          ctx.textAlign = 'left';
+          ctx.fillText(label, xPos + 4, bottom + 14);
+        });
+        ctx.restore();
+      }
+    };
+
+    if (chartInst) { chartInst.destroy(); chartInst = null; }
+    chartInst = new Chart(document.getElementById('chart'), {
+      type: 'line',
+      plugins: [daySeparatorPlugin],
+      data: {
+        labels,
+        datasets: [{
+          label: 'Dewpoint (°F)',
+          data: dps,
+          borderColor: lineColor,
+          backgroundColor: fillColor,
+          fill: true,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 2,
+          tension: 0.35
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        layout: { padding: { bottom: 20 } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const r = rows[items[0].dataIndex];
+                return r ? r.dayStr + ', ' + r.timeStr : '';
+              },
+              label: (item) => ` ${item.raw}°F — ${comfort(item.raw).label}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { display: false },
+            grid: { color: gridColor }
+          },
+          y: {
+            min: Math.max(0, minDp - 8),
+            max: maxDp + 8,
+            ticks: {
+              color: tickColor,
+              font: { size: 11 },
+              callback: v => v + '°'
+            },
+            grid: { color: gridColor }
+          }
+        }
+      }
+    });
+
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+    const seen = new Set();
+    for (const r of rows) {
+      if (r.dt.getHours() % 3 !== 0) continue;
+      const key = r.dayStr + r.dt.getHours();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const c = comfort(r.dp);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.dayStr}</td>
+        <td style="color:var(--text2)">${r.timeStr}</td>
+        <td style="font-weight:600">${r.dp}°F</td>
+        <td><span class="badge" style="background:${c.bg};color:${c.color}">${c.label}</span></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('table-wrap').classList.remove('hidden');
+    document.getElementById('status').classList.add('hidden');
+
+    const now = new Date();
+    document.getElementById('updated').textContent =
+      `Sharon, MA · Updated ${now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} · NOAA/NWS`;
+
+  } catch (err) {
+    document.getElementById('status').textContent = 'Could not load forecast: ' + err.message;
+  }
+}
+
+loadForecast();
+</script>
+</body>
+</html>
