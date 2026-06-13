@@ -65,41 +65,6 @@
     margin-top: 4px;
   }
 
-  .summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
-    margin-bottom: 1.5rem;
-  }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.85rem 1rem;
-  }
-
-  .card-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text3);
-    margin-bottom: 6px;
-  }
-
-  .card-val {
-    font-size: 26px;
-    font-weight: 600;
-    color: var(--text);
-    line-height: 1;
-  }
-
-  .card-sub {
-    font-size: 12px;
-    color: var(--text2);
-    margin-top: 5px;
-  }
-
   .chart-wrap {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -207,8 +172,6 @@
 
   <div id="status">Fetching forecast…</div>
 
-  <div id="summary" class="summary hidden"></div>
-
   <div id="chart-wrap" class="chart-wrap hidden">
     <div class="chart-inner">
       <canvas id="chart" role="img" aria-label="Hourly dewpoint forecast for Sharon, MA"></canvas>
@@ -253,7 +216,7 @@ function comfort(dp) {
 async function loadForecast() {
   document.getElementById('status').textContent = 'Fetching forecast…';
   document.getElementById('status').classList.remove('hidden');
-  ['summary','chart-wrap','table-wrap'].forEach(id => document.getElementById(id).classList.add('hidden'));
+  ['chart-wrap','table-wrap'].forEach(id => document.getElementById(id).classList.add('hidden'));
   document.getElementById('updated').textContent = 'Sharon, MA · Loading from National Weather Service…';
 
   try {
@@ -288,26 +251,6 @@ async function loadForecast() {
     const avgDp = Math.round(dps.reduce((a,b) => a+b,0) / dps.length);
     const curDp = dps[0];
     const curC = comfort(curDp);
-
-    const sumEl = document.getElementById('summary');
-    sumEl.innerHTML = `
-      <div class="card">
-        <div class="card-label">Right now</div>
-        <div class="card-val">${curDp}°F</div>
-        <div class="card-sub">${curC.label}</div>
-      </div>
-      <div class="card">
-        <div class="card-label">7-day average</div>
-        <div class="card-val">${avgDp}°F</div>
-        <div class="card-sub">${comfort(avgDp).label}</div>
-      </div>
-      <div class="card">
-        <div class="card-label">Range</div>
-        <div class="card-val" style="font-size:20px">${minDp}° – ${maxDp}°</div>
-        <div class="card-sub">low / high</div>
-      </div>
-    `;
-    sumEl.classList.remove('hidden');
 
     const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
     const lineColor  = isDark ? '#85B7EB' : '#185FA5';
