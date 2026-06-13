@@ -179,7 +179,7 @@
 
   <div class="controls">
     <input class="zip-input" id="zip-input" type="text" inputmode="numeric"
-           maxlength="5" placeholder="ZIP code" value="02067"
+           maxlength="5" placeholder="ZIP code" value="02201"
            onkeydown="if(event.key==='Enter') goZip()">
     <button class="go-btn" onclick="goZip()">Go</button>
     <div class="divider"></div>
@@ -427,9 +427,9 @@ async function loadForecast(lat, lon, locationLabel) {
   }
 }
 
-// Load Sharon, MA on startup
+// Load Boston, MA on startup
 (async () => {
-  lastLat = 42.1237; lastLon = -71.1784; lastLocation = 'Sharon, MA 02067';
+  lastLat = 42.1237; lastLon = -71.1784; lastLocation = 'Boston, MA 02201';
   await loadForecast(lastLat, lastLon, lastLocation);
 })();
 </script>
