@@ -242,19 +242,14 @@ async function goZip() {
   document.getElementById('updated').textContent = 'Loading…';
 
   try {
-    const geoUrl = `https://geocoding.geo.census.gov/geocoder/locations/address?benchmark=Public_AR_Current&format=json&street=&city=&state=&zip=${zip}`;
-    const geoRes = await fetch(geoUrl);
-    if (!geoRes.ok) throw new Error('ZIP lookup failed.');
+    const geoRes = await fetch(`https://api.zippopotam.us/us/${zip}`);
+    if (geoRes.status === 404) { setError('ZIP code not found. Please try another.'); document.getElementById('status').classList.add('hidden'); return; }
+    if (!geoRes.ok) throw new Error(`ZIP lookup failed (${geoRes.status})`);
     const geoData = await geoRes.json();
-    const matches = geoData.result?.addressMatches;
-    if (!matches || matches.length === 0) { setError('ZIP code not found. Please try another.'); document.getElementById('status').classList.add('hidden'); return; }
-
-    const { x: lon, y: lat } = matches[0].coordinates;
-    // Try to get city/state from the match
-    const addrComp = matches[0].addressComponents;
-    const city = addrComp?.city || '';
-    const state = addrComp?.state || '';
-    const locationLabel = city && state ? `${city}, ${state} ${zip}` : zip;
+    const place = geoData.places[0];
+    const lat = parseFloat(place.latitude);
+    const lon = parseFloat(place.longitude);
+    const locationLabel = `${place['place name']}, ${place['state abbreviation']} ${zip}`;
 
     lastLat = lat; lastLon = lon; lastLocation = locationLabel;
     await loadForecast(lat, lon, locationLabel);
